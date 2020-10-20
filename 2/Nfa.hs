@@ -180,3 +180,13 @@ reduceTrans xs = M.fromListWith (++) $ map (\(f, c, t) -> ((f, t), [c])) xs
 test (state, trans) = do
   mapM_ (\(i, s) -> print i >> showSymbols s) $ zip [0..] (toList state)
   mapM_ print (M.toList $ reduceTrans trans)
+
+ra =
+  let s1 = nfaState 1 Nothing [("", s2), ("x", s5)]
+      s2 = nfaState 2 Nothing [("", s3), ("y", s6)]
+      s3 = nfaState 3 Nothing [("", s4)]
+      s4 = nfaState 4 Nothing [("", s1)]
+      s5 = nfaState 5 Nothing [("z", s2), ("", s6)]
+      s6 = nfaState 6 Nothing [("", s7)]
+      s7 = nfaState 7 (Just "F") []
+  in s1

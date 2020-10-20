@@ -1,0 +1,19 @@
+myid
+987
+786.9
+.0001
+1.
+"my test\nnext"
+debug0
+"string literal and" 876 "number"
+"escaped \" quote"
+if mycond
+/* short comment */
+d1
+/* my long comment
+testtest
+test */
+d2
+/* nested comment /* nested */ end */ after_comment
+comment_next_line
+-987
