@@ -1,6 +1,6 @@
 {
 {-# OPTIONS_GHC -fno-warn-tabs #-}
-module Lexer (scanner, lexer, Token(..), TigToken, AlexPosn(..)) where
+module Lexer (scanner, lexer, Token(..), TigToken, AlexPosn(..), P(..), lexwrap, Alex(..), runAlex, AlexState(..)) where
 
 import Prelude hiding (GT, LT)
 import Control.Monad
@@ -188,7 +188,9 @@ scanner str = runAlex str $ do
         cd <- getCommentDepth
         if snd tok == EOF then
           return toks
-	  else let toks' = tok:toks in toks' `seq` loop toks'
+	    else
+          let toks' = tok:toks
+          in toks' `seq` loop toks'
   loop []
 
 alexEOF = return (AlexPn (-1) 0 0, EOF)
@@ -197,4 +199,24 @@ lexer s = do
  case scanner s of
    Right xs -> reverse xs
    Left e -> error ( show e)
+
+
+data ParseResult a = Ok a | Failed String
+type P a = String -> ParseResult a
+thenP :: P a -> (a -> P b) -> P b
+m `thenP` k = \s ->
+    case m s of
+        Ok a -> k a s
+        Failed e -> Failed e
+returnP :: a -> P a
+returnP a = \s -> Ok a
+
+-- lexer' :: (TigToken -> Alex a) -> Alex a
+-- lexer' c s = do
+--  tok <- alexMonadScan
+--  s' <- alexGetInput
+--  c tok s'
+--
+lexwrap :: (TigToken -> Alex a) -> Alex a
+lexwrap = (alexMonadScan >>=)
 }

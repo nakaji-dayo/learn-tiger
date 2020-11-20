@@ -29,19 +29,22 @@ data Exp =
   | ForExp {var :: Sym, lo :: Exp, hi :: Exp, body :: Exp, pos :: Pos} -- escapeまだ理解できていない
   | BreakExp Pos
   | LetExp {descs :: [Dec], body :: Exp, pos :: Pos}
-  | ArrayExp {typ :: Sym, size :: Exp, init :: Exp, pos :: Pos}
+  | ArrExp {typ :: Sym, size :: Exp, init :: Exp, pos :: Pos}
   deriving (Show)
 
 data Dec =
   FunDecs [FunDec]
   | VarDec {name :: Sym, typ :: Maybe (Sym, Pos), init :: Exp, pos :: Pos} -- escape
-  | TypeDecs {name :: Sym, ty :: Ty, pos :: Pos}
+  | TypeDecs [TyDec]
+  deriving (Show)
+
+data TyDec = TyDec {name :: Sym, ty :: Ty, pos :: Pos}
   deriving (Show)
 
 data Ty =
   NameTy Sym Pos
   | RecordTy [Field]
-  | ArrayTy Sym Pos
+  | ArrTy Sym Pos
   deriving (Show)
 
 data Field = Field

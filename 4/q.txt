@@ -2,3 +2,26 @@
 スコープの話かな。ネストされてないけど先読み参照できる
 
 escapeの説明意味わからん
+
+1
+data Regex' =
+  Symbol String
+  | Alter Regex Regex
+  | Concat Regex Regex
+  | Epsilon
+  | Repetition Regex
+
+type Regex = [Regex']
+
+2
+省略
+
+3
+最初からそのように作った。
+
+4
+
+省略
+
+5
+後で
