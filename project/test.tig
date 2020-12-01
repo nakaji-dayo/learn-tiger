@@ -1,0 +1,21 @@
+let
+	var a: int := 0
+
+	function g(a:string):int = (print(a);9)
+    var x := 9
+    var y := x + 1
+
+    function h(n:int): int =
+      let
+        var i :=0
+      in
+        i
+      end
+    var buffer: string := nil
+    function w() =
+       while buffer=" " | buffer="\n"
+         do buffer := getchar()
+in
+ g("ok")
+
+end

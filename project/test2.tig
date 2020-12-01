@@ -1,0 +1,5 @@
+let
+  type list = { first: int, rest: list}
+in
+  list {first=9, rest=list{first=8, rest=list{h=9}}}
+end
