@@ -1,0 +1,254 @@
+escape計算
+semant以前にexpをtraverseするらしい
+
+
+
+6.1
+アセンブラわからないので色々見てみる
+
+[a]
+最適化切ったりしてる
+```
+int main() {
+  int i = 99;
+  printf("%d", i);
+  return 0;
+}
+```
+=>
+```
+main:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, lr}
+	mov	r1, #99
+	ldr	r0, .L3
+	bl	printf
+	mov	r0, #0
+	pop	{r4, pc}
+```
+
+a.レジスタに置かれた
+
+mainでr4は何が入ってる？外部からなにか来る？
+r1にローカル変数
+r0にL3を読み込み(format
+printf呼び出し
+r0に0(mainの戻り値
+r4,pcをpop
+
+```
+void mod(int *x) {
+  int i = 0;
+  scanf("%d", &i);
+  *x += i;
+}
+
+int main() {
+  int i = 99;
+  mod(&i);
+  return 0;
+}
+```
+=>
+```
+mod:
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, lr}
+	sub	sp, sp, #8
+	mov	r4, r0
+	mov	r3, #0
+	str	r3, [sp, #4]
+	add	r1, sp, #4
+	ldr	r0, .L3
+	bl	scanf
+	ldr	r3, [r4]
+	ldr	r2, [sp, #4]
+	add	r3, r3, r2
+	str	r3, [r4]
+	add	sp, sp, #8
+	@ sp needed
+	pop	{r4, pc}
+main:
+	@ args = 0, pretend = 0, frame = 8
+	@ frame_needed = 0, uses_anonymous_args = 0
+	str	lr, [sp, #-4]!
+	sub	sp, sp, #12
+	mov	r3, #99
+	str	r3, [sp, #4]
+	add	r0, sp, #4
+	bl	mod
+	mov	r0, #0
+	add	sp, sp, #12
+	@ sp needed
+	ldr	pc, [sp], #4
+	.size	main, .-main
+	.ident	"GCC: (SUSE Linux) 10.2.1 20201117 [revision 98ba03ffe0b9f37b4916ce6238fad754e00d720b]"
+	.section	.note.GNU-stack,"",%progbits
+
+```
+
+定数で済ますと最適化カンスが消えるためscanf
+
+a. レジスタに置かれた後メモリに退避された
+
+sp-4にlrをstore
+spを12広げる
+r3に99
+r3をspに退避
+r0にsp#4(99を読み込む
+modを関数呼び出し
+0で終了
+spを縮める
+
+```
+myal:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, lr}
+	mov	r0, #4
+	bl	malloc
+	mov	r4, r0
+	mov	r1, r0
+	ldr	r0, .L3
+	bl	scanf
+	mov	r0, r4
+	pop	{r4, pc}
+main:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, lr}
+	bl	myal
+	ldr	r0, [r0]
+	pop	{r4, pc}
+	.size	main, .-main
+	.ident	"GCC: (SUSE Linux) 10.2.1 20201117 [revision 98ba03ffe0b9f37b4916ce6238fad754e00d720b]"
+	.section	.note.GNU-stack,"",%progbits
+```
+
+a.mallocはメモリ上に確保し、アドレスをレジスタで保持した
+
+push r4,lr
+myalのコール
+  push r4,lr
+  r0に4
+  mallocをコール
+  r0をr4(memo
+  r0をr1に入れる(snd arg scanf
+  scanfのコール
+  r4をr0に戻す
+r0(返ってきたアドレス)からr0にロード
+
+[b]
+h:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+	mov	r1, r0
+	ldr	r0, .L3
+	b	printf
+g:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+	ldr	r0, .L6
+	b	printf
+f:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	push	{r4, lr}
+	mov	r4, r0 @ fst arg(a)を退避
+	ldr	r0, .L10 @ >>gが展開されてる
+	bl	printf  @ <<g
+	add	r1, r4, #1 @ >>hが展開されている。r4(the a)に1足してr1(snd arg of printf)に
+	ldr	r0, .L10+4 @定数が入ったセクションを別のセクションでindexしてる?目的がまだわからない
+	bl	printf <<h
+	add	r0, r4, #3 @bは退避していなかったが、r4(a)に3を足せば同じ。定数の演算をまとめた
+	pop	{r4, pc}
+
+(.L4,.L7,.L11)は.align	2
+
+
+[c]
+
+課題のとおりだと、xは消える
+??
+
+s/f(y)/f(x)
+
+f:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+	mov	r1, r0
+	ldr	r0, .L3
+	b	printf
+h:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	mov	r1, r0 #r0(y)をr1に
+	push	{r4, lr} @ [b]と変わらない点は省略
+	ldr	r4, .L7 @展開されるf内のprintfのfst argの定数はまとめて１度メモリから読まれている
+	add	r1, r1, #1 @ r1+=1
+	mov	r0, r4  @ <<展開されたf(x), format string
+	bl	printf
+	mov	r0, r4 @ format stringを再度設定
+	pop	{r4, lr}
+	mov	r1, #2 @ f(2)
+	b	printf
+
+[b]では引数r0はr4に対比させたが、[c]ではfの初回コール用にr1入れるだけで済むことがわかる。
+ブロック内での変数の有効範囲は重要
+
+
+6.2
+引数に使わないレジスタr4以降に対比すると思われる
+=> そうだった.xのみ退避される賢い
+
+
+6.3
+a:
+ 一旦レジスタ。退避もレジスタ
+ dが消えるのでよくわからない
+   returnでdも返す
+     r4に退避された
+b:
+ 一旦レジスタ、メモリに移してアドレス使う
+  => 合ってた
+c:
+ メモリ?
+  => 合ってた
+d:
+ レジスタ
+ 消える
+ 使うようにしたら
+   r4が使いまわされる
+e:
+ レジスタ
+ =>合ってた
+
+f:
+	@ args = 0, pretend = 0, frame = 24
+	@ frame_needed = 0, uses_anonymous_args = 0
+	str	lr, [sp, #-4]!
+	sub	sp, sp, #28
+	str	r1, [sp, #4]
+	add	r0, sp, #12
+	add	r1, sp, #4
+	bl	g
+	ldr	r2, [sp, #16]
+	ldr	r3, [sp, #4]
+	add	r0, r0, r2
+	add	r0, r0, r3
+	add	sp, sp, #28
+	@ sp needed
+	ldr	pc, [sp], #4
+	.size	f, .-f
+	.ident	"GCC: (SUSE Linux) 10.2.1 20201117 [revision 98ba03ffe0b9f37b4916ce6238fad754e00d720b]"
+	.section	.note.GNU-stack,"",%progbits
+
+
+====
+演習は次の章と合わせたほうが効率良さそう
+todo
