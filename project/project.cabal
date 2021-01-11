@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1d7f558c98eaafcd925a43147af3114021856437a68efc41e12910ad3595cf64
+-- hash: d3361e86755d60a1a24abccf8f721f5e9bca68c5f190bd2d2fb41e991ccdbd05
 
 name:           project
 version:        0.1.0.0
@@ -28,11 +28,18 @@ source-repository head
 library
   exposed-modules:
       AbSyn
+      Escape
+      Frame
+      Frame.Arm
       Lexer
       Lib
       Parser
       Semant
+      Temp
+      Translate
+      Tree
       Ty
+      Type
       Util
   other-modules:
       Paths_project

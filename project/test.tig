@@ -8,6 +8,18 @@ let
     function h(n:int): int =
       let
         var i :=0
+        function h2(m:int): int =
+          let
+            var j := i + 1
+            function h3(o:int): int =
+              let
+                var k := j + 1
+              in
+                k
+              end
+          in
+            j
+          end
       in
         i
       end

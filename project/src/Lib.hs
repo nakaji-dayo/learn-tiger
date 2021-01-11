@@ -8,7 +8,6 @@ import           System.Directory
 import           Text.Pretty.Simple (pPrint)
 
 
-
 run s =
   case parse s of
     Right e -> do

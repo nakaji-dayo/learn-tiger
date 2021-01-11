@@ -1,5 +1,6 @@
 let
-  type list = { first: int, rest: list}
+  var x := 2
 in
-  list {first=9, rest=list{first=8, rest=list{h=9}}}
+  x + 8;
+  print("hello")
 end

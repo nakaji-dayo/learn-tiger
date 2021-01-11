@@ -252,3 +252,68 @@ f:
 ====
 演習は次の章と合わせたほうが効率良さそう
 todo
+
+
+
+====
+
+extern int g(int*);
+
+int f(int a, int b, int c, int d) {
+  int x = 99;
+  g(&x);
+  return x + a + b + c + d;
+}
+
+int m() {
+  f(33, 44, 55, 66);
+  return 7;
+}
+
+f:
+        @ args = 0, pretend = 0, frame = 8
+        @ frame_needed = 0, uses_anonymous_args = 0
+        push    {r4, r5, r6, r7, lr}
+        sub     sp, sp, #12
+        mov     r4, r0
+        mov     r7, r1
+        mov     r6, r2
+        mov     r5, r3
+        mov     r3, #99
+        str     r3, [sp, #4]
+        add     r0, sp, #4
+        bl      g
+        ldr     r0, [sp, #4]
+        add     r0, r4, r0
+        add     r0, r0, r7
+        add     r0, r0, r6
+        add     r0, r0, r5
+        add     sp, sp, #12
+        @ sp needed
+        pop     {r4, r5, r6, r7, pc}
+        .size   f, .-f
+        .align  2
+        .global m
+        .syntax unified
+        .arm
+        .fpu vfp
+        .type   m, %function
+m:
+        @ args = 0, pretend = 0, frame = 0
+        @ frame_needed = 0, uses_anonymous_args = 0
+        push    {r4, lr}
+        mov     r3, #66
+        mov     r2, #55
+        mov     r1, #44
+        mov     r0, #33
+        bl      f
+        mov     r0, #7
+        pop     {r4, pc}
+
+引数はr0~r3にはいるが、
+fでは、r4~r7（とlr）を退避し、r0~r3をr4~r7に退避している。
+その後,r3にローカル変数を確保(なぜr3?)
+これはフレームに写す(pointer渡すので)
+ アドレス使わない場合たんにr0に確保される
+ 引数が増えr3を使う場合も、その前にr3でフレームに写す予定のローカル変数を一旦持つことには変わりない
+ (-O1での検証)
