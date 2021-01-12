@@ -1,15 +1,15 @@
 module Tree where
 
 
-import           Temp
+import           Temp.Type as T
 
 data Exp =
   Const Int
   | Name Label
-  | Temp Temp.Temp
+  | Temp T.Temp
   | BinOp BinOp Exp Exp
   | Mem Exp
-  | Call Exp
+  | Call Exp [Exp]
   | ESeq Stm Exp
   deriving (Show)
 

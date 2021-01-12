@@ -1,16 +1,21 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Temp where
 
-data Temp = Temp Int
-  deriving (Show)
+import           Control.Monad.State (MonadState (get, put))
+import           Temp.Type
+import           Type
 
-data Label = Label (Maybe String)
-  deriving (Show)
+mkTemp :: MonadState (TransResult a) m => m Temp
+mkTemp = do
+  s <- get
+  put (s {tempCounter = tempCounter s + 1})
+  pure $ Temp $ tempCounter s
 
-mkTemp :: Temp
-mkTemp = undefined
-
-mkLabel :: Label
-mkLabel = undefined
+mkLabel :: TcM f Label
+mkLabel = do
+  s <- TcM get
+  TcM $ put (s {labelCounter = labelCounter s + 1})
+  pure $ Label $ Just $ "L" <> show (labelCounter s)
 
 namedLabel :: String -> Label
 namedLabel = undefined

@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FlexibleContexts    #-}
 module Translate where
 
 import qualified AbSyn               as A
@@ -6,6 +7,8 @@ import           Control.Monad.State (MonadState (get, put))
 import           Control.Monad.Trans (MonadTrans (lift))
 import           Frame               as F
 import           Temp
+import           Temp.Type
+import           Translate.Type
 import qualified Tree                as T
 import           Type
 
@@ -25,7 +28,7 @@ formals :: Level ->[F.Access a]
 formals = undefined
 
 allocLocal :: Frame f => Level -> Bool -> TcM f (F.Access f)
-allocLocal _ _ = pure $ F.allocLocal undefined True
+allocLocal _ _ = TcM $ F.allocLocal undefined True
 
 data Exp =
   Ex T.Exp
@@ -37,28 +40,34 @@ instance Show Exp where
   show (Nx x)  =  show x
   show (Ex x)  =  show x
 
-unEx (Ex t)   = t
-unEx (Nx stm) = T.ESeq stm (T.Const 0)
-unEx (Cx mkstm) =
-  let r = mkTemp
-      t = mkLabel
-      f = mkLabel
-      stm = seqStm
-        [ T.Move (T.Temp r) (T.Const 1)
-        , mkstm t f
-        , T.Label f
-        , T.Move (T.Temp r) (T.Const 0)
-        , T.Label t]
-  in
-    T.ESeq stm (T.Temp r)
+unEx (Ex t)   = pure t
+unEx (Nx stm) = pure $ T.ESeq stm (T.Const 0)
+unEx (Cx mkstm) = do
+  r <- TcM mkTemp
+  t <- mkLabel
+  f <- mkLabel
+  let stm = seqStm
+            [ T.Move (T.Temp r) (T.Const 1)
+            , mkstm t f
+            , T.Label f
+            , T.Move (T.Temp r) (T.Const 0)
+            , T.Label t]
+  pure $ T.ESeq stm (T.Temp r)
 
-unNx (Ex t)  = T.Exp t
-unNx (Nx st) = st
-unNx c       = T.Exp $ unEx c
+unNx (Ex t)  = pure $ T.Exp t
+unNx (Nx st) = pure st
+unNx c       = T.Exp <$> unEx c
 
 unCx (Ex e) t f = T.Exp e
 unCx (Nx _) _ _ = error "impossible"
 unCx (Cx c) t f = c t f
+
+seq :: [Exp] -> TcM f Exp
+seq xs = do
+  let h:t = reverse xs
+  stms <- mapM unNx (reverse t)
+  e <- unEx h
+  pure $ Ex $ T.ESeq (seqStm stms) e
 
 seqStm :: [T.Stm] -> T.Stm
 seqStm = foldr T.Seq (T.Exp $ T.Const 0)
@@ -69,21 +78,47 @@ simpleVar :: Frame a => Type.Access a
   -> Translate.Exp
 simpleVar (lv, a) _ = Ex $ F.exp a (T.Temp $ fp a)
 
-letExp :: [Exp] -> Exp -> Exp
-letExp init b = Ex $ T.ESeq (seqStm $ fmap unNx init) (unEx b)
+letExp :: [Exp] -> Exp -> TcM f Exp
+letExp init b = do
+  istms <- mapM unNx init
+  be <- unEx b
+  pure $ Ex $ T.ESeq (seqStm istms) be
 
-assign :: Exp -> Exp -> Exp
-assign l r = Nx $ T.Move (unEx l) (unEx r)
+assign :: Exp -> Exp -> TcM f Exp
+assign l r = Nx <$> (T.Move <$> unEx l <*> unEx r)
 
 int :: Int -> Exp
 int = Ex . T.Const
 
 string :: String -> TcM f Exp
 string s = do
-  r <- TcM $ lift get
-  let lbl = mkLabel
+  lbl <- mkLabel
+  r <- TcM get
   let f = FString lbl s
   TcM $ put $ r {frags = f:frags r}
   pure $ Ex $ T.Name lbl
 
-binop A.Plus l r = Ex $ T.BinOp T.Plus (unEx l) (unEx r)
+binop A.Plus l r = Ex <$> (T.BinOp T.Plus <$> unEx l <*> unEx r)
+
+call :: Level -> Level -> Label -> [Exp] -> TcM f Exp
+call erLv eeLv lbl as = do
+  ase <- mapM unEx as
+  pure $ Ex $ T.Call (T.Name lbl) ase
+  -- todo: calc static link
+
+ifExp :: Exp -> Exp -> Exp -> TcM f Exp
+ifExp c t f = do
+  lt <- mkLabel
+  lf <- mkLabel
+  z <- mkLabel
+  r <- TcM mkTemp
+  tex <- unEx t
+  fex <- unEx f
+  let s = seqStm
+          [ unCx c lt lf
+          , T.Label lt, T.Move (T.Temp r) tex
+          , T.Jump (T.Name z) [z]
+          , T.Label lf, T.Move (T.Temp r) fex
+          , T.Jump (T.Name z) [z]
+          ]
+  pure $ Ex $ T.ESeq s (T.Temp r)

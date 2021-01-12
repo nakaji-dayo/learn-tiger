@@ -1,11 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Type where
+module Type (
+  module Type
+  , module Translate.Type
+  ) where
 import           AbSyn
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.HashMap.Lazy
 import           Frame                as F
-import           Temp                 (Label (Label))
+import           Temp.Type
+import           Translate.Type
 import qualified Tree                 as T
 import           Ty
 
@@ -23,14 +27,6 @@ data Env a = Env
   { venv  :: HashMap String (VarEntry a)
   , tenv  :: HashMap String Ty
   , level :: Level
-  }
-
-
-data Frag a = FProc T.Stm a
-            | FString Label String
-
-data TransResult a = TransResult
-  { frags :: [Frag a]
   }
 
 newtype TcM f a = TcM {runTcM :: ReaderT (Env f) (StateT (TransResult f) (Either (Pos, String))) a}

@@ -1,6 +1,10 @@
 let
   var x := 2
+  var y := 70
 in
-  x + 8;
-  print("hello")
+  x + 8 + y;
+  print("hello");
+  print("world");
+  /*if 1 then print("world") else print("error");*/
+  print(chr(x + y))
 end

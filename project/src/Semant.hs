@@ -11,7 +11,7 @@ import           AbSyn
 import           Control.Monad        (forM, forM_, unless, void, when)
 import           Control.Monad.Reader (MonadReader, ReaderT, asks, local,
                                        runReaderT)
-import           Control.Monad.State  (evalState, evalStateT, runState)
+import           Control.Monad.State  (evalState, runState, runStateT)
 import           Control.Monad.Trans  (MonadTrans (lift))
 import           Data.HashMap.Strict  as H
 import           Data.List            (sortOn)
@@ -22,7 +22,8 @@ import           Frame.Arm            (ArmFrame (ArmFrame))
 import           GHC.Records
 import           GHC.Stack            (HasCallStack)
 import           Lexer                (AlexPosn)
-import           Temp                 (Label (Label), mkLabel)
+import           Temp                 (mkLabel)
+import           Temp.Type            (Label (Label))
 import           Translate            (newLevel, outermost)
 import qualified Translate            as T
 import           Ty
@@ -64,7 +65,8 @@ transExp (OpExp l op r pos) = do
   (rexp, tr) <- transExp r
   case (tl, tr) of
     (Int, Int) -> do
-       pure (T.binop op lexp rexp, Int)
+      e <- T.binop op lexp rexp
+      pure (e, Int)
     t | op `elem` [Eq, Neq] -> do
           r <- sEq pos tl tr
           if r then pure (errTExp, Int) else tyErr pos ("not match " <> show (tl, op, tr))
@@ -77,7 +79,8 @@ transExp IfExp{..} = do
     Just ele -> do
       (elexp, elt) <- transExp ele
       testTy pos tht elt
-      pure (errTExp, tht)
+      e <- T.ifExp texp thexp elexp
+      pure (e, tht)
     _ -> do
       testTy pos Unit tht
       pure (errTExp, Unit)
@@ -101,9 +104,15 @@ transExp (IntExp x) = pure (T.int x, Int)
 transExp (StringExp x _) = do
   (, String) <$> T.string x
 transExp NilExp = pure (T.int 0, Nil) -- 本当?
-transExp (SeqExp []) = pure (errTExp, Unit) -- 怪しい
-transExp (SeqExp [(x, _)]) = transExp x
-transExp (SeqExp ((x, _):xs)) = transExp x >> transExp (SeqExp xs)
+
+-- transExp (SeqExp []) = pure (errTExp, Unit)
+-- transExp (SeqExp [(x, _)]) = transExp x
+-- transExp (SeqExp ((x, _):xs)) = transExp x >> transExp (SeqExp xs)
+transExp (SeqExp xs) = do
+  es <- mapM f (fst <$> xs)
+  (, snd $ last es) <$> T.seq (fmap fst es)
+  where
+    f x = transExp x
 transExp (VarExp var) = transVar False var
 transExp RecExp {..} = do
   t <- getTy' pos typ
@@ -126,11 +135,12 @@ transExp RecExp {..} = do
   traceShowM ("<<--", typ, pos)
   pure (errTExp, t)
 transExp CallExp{..} = do
-  (ats, rt) <- getFun pos func
-  aats <- mapM transExp args
+  (lv, lbl, ats, rt) <- getFun pos func
+  (aexps, aats) <- unzip <$> mapM transExp args
   when (length ats /= length aats) $ tyErr pos $ "called with " <> show (length aats) <> " args expect " <> show (length ats)
-  forM_ (zip ats (snd <$> aats)) $ uncurry (testTy pos)
-  pure (errTExp, rt)
+  forM_ (zip ats aats) $ uncurry (testTy pos)
+  exp <- T.call (error "caller") lv lbl aexps
+  pure (exp, rt)
 
 -- 同ブロックの定義の後方参照は可能とする
 --
@@ -145,7 +155,7 @@ transExp LetExp{..} = do
       sequence_ $ catMaybes tcs
       (exp, ty) <- transExp body
       pure (exp, ty, iexps)
-  let letexp = T.letExp iexps bexp
+  letexp <- T.letExp iexps bexp
   pure (letexp, bty)
   where
     foldVDecs ::  Frame f => ([Maybe (TcM f ())], [T.Exp])
@@ -170,7 +180,7 @@ transExp LetExp{..} = do
       ac <- T.allocLocal lv True
       (exp, t) <- transExp init
       let var = T.simpleVar (lv, ac) lv
-          assign = T.assign var exp
+      assign <- T.assign var exp
       t' <- forM typ $ \(sym', pos') -> do
         t' <- getTy' pos' sym'
         when (t /= Nil) $ -- todo: 抽象化
@@ -203,7 +213,7 @@ transExp LetExp{..} = do
       --
       lv <- getLevel
       traceM $ "debug: level:" <> show lv
-      let lbl = mkLabel
+      lbl <- mkLabel
       pure (name, FunEntry lv lbl (fmap snd ats) rt, Just p) -- todo: check duplicated
     transTDec :: TyDec -> TcM f (Sym, Ty)
     transTDec TyDec{..} = do
@@ -303,7 +313,7 @@ getVarMut pos k = getVar k >>= \case
   _ -> (tyErr pos ("undefined variable '" ++ k ++ "'"))
 
 getFun pos k = getVar k >>= \case
-  Just (FunEntry _ _ as rt) -> pure (as, rt)
+  Just (FunEntry lv lbl as rt) -> pure (lv, lbl, as, rt)
   Just _ -> (tyErr pos ("undefined function '" ++ k ++ "'"))
   _ -> (tyErr pos ("undefined function '" ++ k ++ "'"))
 
@@ -367,11 +377,11 @@ sEq _ x y = pure $ x == y
 
 
 
-runTrans :: Exp -> Either (Pos, String) (T.Exp, Ty)
+runTrans :: Exp -> Either (Pos, String) ((T.Exp, Ty), TransResult ArmFrame)
 runTrans e = runTcM' (transExp e) initEnv initTrans
 
-runTcM' :: TcM ArmFrame  a -> Env ArmFrame -> TransResult ArmFrame  -> Either (Pos, String) a
-runTcM' x e e' = evalStateT (runReaderT (runTcM x) e) e'
+runTcM' :: TcM ArmFrame  a -> Env ArmFrame -> TransResult ArmFrame  -> Either (Pos, String) (a, TransResult ArmFrame)
+runTcM' x e e' = runStateT (runReaderT (runTcM x) e) e'
 
 initEnv :: Frame f => Env f
 initEnv =
@@ -394,4 +404,4 @@ initEnv =
       level = outermost
   in Env {..}
 
-initTrans = TransResult []
+initTrans = TransResult [] 0 0

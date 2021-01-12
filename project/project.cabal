@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d3361e86755d60a1a24abccf8f721f5e9bca68c5f190bd2d2fb41e991ccdbd05
+-- hash: b7b71a787f66656c3d70d22a51d7a29d5cdaa78a6f55df639dad5c9a1c744479
 
 name:           project
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       Parser
       Semant
       Temp
+      Temp.Type
       Translate
       Tree
       Ty
