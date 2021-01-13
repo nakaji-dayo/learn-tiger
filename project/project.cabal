@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b7b71a787f66656c3d70d22a51d7a29d5cdaa78a6f55df639dad5c9a1c744479
+-- hash: d94fc643f53d5b984ac139ff969335b427935c426f2568edd034a93aab0ef4b4
 
 name:           project
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       AbSyn
+      Canon
       Escape
       Frame
       Frame.Arm
@@ -38,6 +39,7 @@ library
       Temp
       Temp.Type
       Translate
+      Translate.Type
       Tree
       Ty
       Type

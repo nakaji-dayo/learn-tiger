@@ -26,6 +26,7 @@ import           Temp                 (mkLabel)
 import           Temp.Type            (Label (Label))
 import           Translate            (newLevel, outermost)
 import qualified Translate            as T
+import qualified Tree
 import           Ty
 import           Type
 import           Util
@@ -213,7 +214,7 @@ transExp LetExp{..} = do
       --
       lv <- getLevel
       traceM $ "debug: level:" <> show lv
-      lbl <- mkLabel
+      lbl <- TcM mkLabel
       pure (name, FunEntry lv lbl (fmap snd ats) rt, Just p) -- todo: check duplicated
     transTDec :: TyDec -> TcM f (Sym, Ty)
     transTDec TyDec{..} = do
@@ -377,8 +378,12 @@ sEq _ x y = pure $ x == y
 
 
 
-runTrans :: Exp -> Either (Pos, String) ((T.Exp, Ty), TransResult ArmFrame)
-runTrans e = runTcM' (transExp e) initEnv initTrans
+runTrans :: Exp -> Either (Pos, String) ((Tree.Stm, Ty), TransResult ArmFrame)
+runTrans e = runTcM' f initEnv initTrans
+  where f = do
+          (exp, ty) <- transExp e
+          stm <- T.unNx exp
+          pure (stm, ty)
 
 runTcM' :: TcM ArmFrame  a -> Env ArmFrame -> TransResult ArmFrame  -> Either (Pos, String) (a, TransResult ArmFrame)
 runTcM' x e e' = runStateT (runReaderT (runTcM x) e) e'

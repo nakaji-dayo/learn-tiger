@@ -11,10 +11,10 @@ mkTemp = do
   put (s {tempCounter = tempCounter s + 1})
   pure $ Temp $ tempCounter s
 
-mkLabel :: TcM f Label
+mkLabel :: MonadState (TransResult a) m => m Label
 mkLabel = do
-  s <- TcM get
-  TcM $ put (s {labelCounter = labelCounter s + 1})
+  s <- get
+  put (s {labelCounter = labelCounter s + 1})
   pure $ Label $ Just $ "L" <> show (labelCounter s)
 
 namedLabel :: String -> Label

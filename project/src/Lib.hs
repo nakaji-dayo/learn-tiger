@@ -1,5 +1,6 @@
 module Lib where
 
+import           Canon
 import           Control.Monad
 import           Data.List          (isInfixOf)
 import           Parser
@@ -13,7 +14,15 @@ run s =
     Right e -> do
       pPrint e
       case runTrans e of
-        Right t -> pPrint t
+        Right t -> do
+          pPrint t
+          let ((stms, bs), _) = runCanon (snd t) (fst $ fst t)
+          putStrLn "canon"
+          putStrLn  "-- stms --"
+          mapM_ print stms
+          putStrLn  "-- bs --"
+          let pblock (i, b) = print i >> mapM_ (\x -> putStrLn $ "  " <> show x) b
+          mapM_ pblock $ zip [0..] (fst bs)
         Left e  -> putStrLn "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
 

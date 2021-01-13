@@ -44,8 +44,8 @@ unEx (Ex t)   = pure t
 unEx (Nx stm) = pure $ T.ESeq stm (T.Const 0)
 unEx (Cx mkstm) = do
   r <- TcM mkTemp
-  t <- mkLabel
-  f <- mkLabel
+  t <- TcM mkLabel
+  f <- TcM mkLabel
   let stm = seqStm
             [ T.Move (T.Temp r) (T.Const 1)
             , mkstm t f
@@ -54,11 +54,12 @@ unEx (Cx mkstm) = do
             , T.Label t]
   pure $ T.ESeq stm (T.Temp r)
 
+unNx :: Exp -> TcM a T.Stm
 unNx (Ex t)  = pure $ T.Exp t
 unNx (Nx st) = pure st
 unNx c       = T.Exp <$> unEx c
 
-unCx (Ex e) t f = T.Exp e
+unCx (Ex e) t f = T.CJump T.NE e (T.Const 1) f t
 unCx (Nx _) _ _ = error "impossible"
 unCx (Cx c) t f = c t f
 
@@ -92,7 +93,7 @@ int = Ex . T.Const
 
 string :: String -> TcM f Exp
 string s = do
-  lbl <- mkLabel
+  lbl <- TcM mkLabel
   r <- TcM get
   let f = FString lbl s
   TcM $ put $ r {frags = f:frags r}
@@ -108,9 +109,9 @@ call erLv eeLv lbl as = do
 
 ifExp :: Exp -> Exp -> Exp -> TcM f Exp
 ifExp c t f = do
-  lt <- mkLabel
-  lf <- mkLabel
-  z <- mkLabel
+  lt <- TcM mkLabel
+  lf <- TcM mkLabel
+  z <- TcM mkLabel
   r <- TcM mkTemp
   tex <- unEx t
   fex <- unEx f
@@ -120,5 +121,6 @@ ifExp c t f = do
           , T.Jump (T.Name z) [z]
           , T.Label lf, T.Move (T.Temp r) fex
           , T.Jump (T.Name z) [z]
+          , T.Label z
           ]
   pure $ Ex $ T.ESeq s (T.Temp r)

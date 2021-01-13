@@ -4,7 +4,6 @@ let
 in
   x + 8 + y;
   print("hello");
-  print("world");
-  /*if 1 then print("world") else print("error");*/
+  if 1 then print("world") else print("error");
   print(chr(x + y))
 end
