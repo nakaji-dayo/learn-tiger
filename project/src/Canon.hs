@@ -108,7 +108,7 @@ traceSchedule :: ([[Stm]], Temp.Label) -> [Stm]
 traceSchedule = undefined
 
 
-runCanon :: CanonC m =>Stm -> m ([Stm], ([[Stm]], Temp.Label))
+runCanon :: CanonC m => Stm -> m ([Stm], ([[Stm]], Temp.Label))
 runCanon stm = do
       let stms = linearize stm
       stms' <- basicBlocks stms

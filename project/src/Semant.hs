@@ -346,7 +346,7 @@ actTy _ t          = pure t
 --
 
 tyErr :: TransC f m => Pos -> String -> m a
-tyErr pos msg = error msg -- TransC $ lift . lift $ Left (pos, msg)
+tyErr pos = error -- TransC $ lift . lift $ Left (pos, msg)
 
 testTy pos t' t = do
   r <- sEq pos t' t
@@ -378,15 +378,17 @@ sEq pos t (Name s) = do
 sEq _ x y = pure $ x == y
 
 
-runTrans :: Exp -> IO (Either (Pos, String) (Tree.Stm, Ty))
-runTrans e = do
+-- runTrans :: m -> IO (Either (Pos, String) (Tree.Stm, Ty))
+runTrans :: SemM ArmFrame b -> IO b
+runTrans m = do
   ctx <- Ctx <$> newIORef [] <*> newIORef 0 <*> newIORef 0 <*> pure initEnv
-  runSemM ctx f
-  where
-    f = do
-      (exp, ty) <- transExp e
-      stm <- T.unNx exp
-      pure $ Right (stm, ty)
+  runSemM ctx m
+
+trans :: TransC ArmFrame m => Exp -> m (Either (Pos, String) (Tree.Stm, Ty))
+trans e = do
+  (exp, ty) <- transExp e
+  stm <- T.unNx exp
+  pure $ Right (stm, ty)
 
 runSemM :: Ctx  ArmFrame -> SemM ArmFrame  a -> IO a
 runSemM ctx (SemM m) = runReaderT m ctx

@@ -20,6 +20,7 @@ import Data.IORef
 import GHC.Generics (Generic)
 import Control.Monad.Reader (ReaderT(ReaderT))
 import Capability.Reader
+import Control.Monad.IO.Class (MonadIO)
 
 -- Translate?
 type Level = Int
@@ -46,7 +47,7 @@ data Ctx f = Ctx
   deriving (Generic)
 
 newtype SemM f a = SemM (ReaderT (Ctx f) IO a)
-  deriving (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad, MonadIO)
   deriving (HasSource "tempCounter" Int, HasSink "tempCounter" Int, HasState "tempCounter" Int) via ReaderIORef (C.Field "tempCounter" () (MonadReader (ReaderT (Ctx f) IO)))
   deriving (HasSource "labelCounter" Int, HasSink "labelCounter" Int, HasState "labelCounter" Int) via ReaderIORef (C.Field "labelCounter" () (MonadReader (ReaderT (Ctx f) IO)))
   deriving (HasSource "frags" [Frag f], HasSink "frags" [Frag f], HasState "frags" [Frag f]) via ReaderIORef (C.Field "frags" () (MonadReader (ReaderT (Ctx f) IO)))
