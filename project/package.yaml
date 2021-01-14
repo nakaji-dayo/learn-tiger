@@ -27,6 +27,7 @@ dependencies:
 - unordered-containers
 - containers
 - directory
+- capability
 
 library:
   source-dirs: src

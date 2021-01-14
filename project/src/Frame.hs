@@ -1,9 +1,11 @@
+{-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 
 module Frame where
 
+import           Capability.State  (HasState)
 import           Control.Monad.RWS (MonadState)
 import           Temp.Type
 import           Translate.Type
@@ -14,7 +16,7 @@ class Frame a where
   newFrame :: Label -> [Bool] -> a
   name :: a -> Label
   formals :: a -> [Access a]
-  allocLocal :: MonadState (TransResult a) m => a -> Bool -> m (Access a)
+  allocLocal :: HasState "tempCounter" Int m => a -> Bool -> m (Access a)
   fp :: Access a -> Temp
   rv :: Access a -> Temp
   wordSize :: Access a -> Int

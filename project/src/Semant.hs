@@ -8,12 +8,13 @@
 module Semant where
 
 import           AbSyn
+import           Capability.Reader    (asks, local)
 import           Control.Monad        (forM, forM_, unless, void, when)
-import           Control.Monad.Reader (MonadReader, ReaderT, asks, local,
-                                       runReaderT)
+import           Control.Monad.Reader (runReaderT)
 import           Control.Monad.State  (evalState, runState, runStateT)
 import           Control.Monad.Trans  (MonadTrans (lift))
 import           Data.HashMap.Strict  as H
+import           Data.IORef           (newIORef)
 import           Data.List            (sortOn)
 import           Data.Maybe           (catMaybes, fromMaybe, isNothing)
 import           Debug.Trace          (trace, traceM, traceShowM)
@@ -41,7 +42,7 @@ lookupElem _ (Array t) =
 lookupElem pos t = tyErr pos $ show t <> " isn't array type"
 
 
-transVar :: Frame f => Bool -> Var -> TcM f (T.Exp, Ty)
+transVar :: (TransC f m, Frame f) => Bool -> Var -> m (T.Exp, Ty)
 transVar mut (SimpleVar s pos) = do
   (a, ty) <- if mut then getVarMut pos s else getVar' pos s
   let e = T.simpleVar a (error "transVar level")
@@ -60,7 +61,7 @@ transVar mut (SubscriptVar var exp pos) = do
 errTExp :: HasCallStack => T.Exp
 errTExp = error "not implemented T.Exp"
 
-transExp :: Frame f => Exp -> TcM f (T.Exp, Ty.Ty)
+transExp :: (TransC f m, Frame f) => Exp -> m (T.Exp, Ty.Ty)
 transExp (OpExp l op r pos) = do
   (lexp, tl) <- transExp l
   (rexp, tr) <- transExp r
@@ -159,8 +160,8 @@ transExp LetExp{..} = do
   letexp <- T.letExp iexps bexp
   pure (letexp, bty)
   where
-    foldVDecs ::  Frame f => ([Maybe (TcM f ())], [T.Exp])
-                  -> [Dec] -> (([Maybe (TcM f ())], [T.Exp]) -> TcM f b) -> TcM f b
+    foldVDecs ::  TransC f m => (TransC f m, Frame f) => ([Maybe (m ())], [T.Exp])
+                  -> [Dec] -> (([Maybe (m ())], [T.Exp]) -> m b) -> m b
     foldVDecs acc [] c = do
       c acc
     foldVDecs (lazyc, inits) (d:decs) c = do
@@ -173,9 +174,9 @@ transExp LetExp{..} = do
     sepDecs = Prelude.foldr f ([], [])
       where f d@(TyDecs _) (vs, ts) =  (vs, d:ts)
             f d (vs, ts)            =  (d:vs, ts)
-    -- Maybe (TcM f ()): promised type check
-    transVDec :: forall f. Frame f => Dec
-              -> TcM f ([(Sym, VarEntry f, Maybe (TcM f ()))], Maybe T.Exp)
+    -- Maybe (TransC f ()): promised type check
+    transVDec :: (TransC f m, Frame f) => Dec
+              -> m ([(Sym, VarEntry f, Maybe (m ()))], Maybe T.Exp)
     transVDec VarDec{..} = do
       lv <- getLevel
       ac <- T.allocLocal lv True
@@ -191,10 +192,10 @@ transExp LetExp{..} = do
       pure ([(name, VarEntry (lv, ac) False (fromMaybe t t'), Nothing)], Just assign)
     transVDec (FunDecs decs) =
       (, Nothing) <$> mapM transFunDec decs
-    transTDecs :: Dec -> TcM f [(Sym, Ty)]
+    transTDecs :: TransC f m => Dec -> m [(Sym, Ty)]
     transTDecs (TyDecs decs) =
       mapM transTDec decs
-    transFunDec :: Frame f => FunDec -> TcM f (Sym, VarEntry f, Maybe (TcM f ()))
+    transFunDec :: (TransC f m, Frame f) => FunDec -> m (Sym, VarEntry f, Maybe (m ()))
     transFunDec FunDec{..} = do
       ats <- forM params $ \p -> do
         let s = getField @"typ" p
@@ -214,9 +215,9 @@ transExp LetExp{..} = do
       --
       lv <- getLevel
       traceM $ "debug: level:" <> show lv
-      lbl <- TcM mkLabel
+      lbl <- mkLabel
       pure (name, FunEntry lv lbl (fmap snd ats) rt, Just p) -- todo: check duplicated
-    transTDec :: TyDec -> TcM f (Sym, Ty)
+    transTDec :: TransC f m => TyDec -> m (Sym, Ty)
     transTDec TyDec{..} = do
       t <- case ty of
         NameTy sym _ ->
@@ -232,7 +233,7 @@ transExp LetExp{..} = do
           maybe (pure $ Array (Name s)) (pure . Array) =<< getTy s
       pure (name, t)
     --相互再帰の解決（怪しい
-    resolveName :: [(String, Ty)] -> TcM f [(String, Ty)]
+    resolveName :: TransC f m => [(String, Ty)] -> m [(String, Ty)]
     resolveName ts = do
       let f t = case t of
                     (Name sym) -> do
@@ -249,7 +250,7 @@ transExp LetExp{..} = do
                       pure (Record fs')
                     _               -> pure t
       lv <- getLevel
-      local (const $ Env empty (fromList ts) lv) $
+      local @"env" (const $ Env empty (fromList ts) lv) $
         forM ts $ \(n, t) -> (n,) <$> f t
       -- pure ts
 -- Nameの解決が定まらないので後回し（tcだけならシンプルにできるっぽいが、中間言語も気になる）
@@ -284,29 +285,29 @@ transExp e = error ("not implemented exp:" ++ show e)
 
 
 
-defVar :: String
+defVar :: TransC f m => String
        -> VarEntry f
-       -> TcM f a
-       -> TcM f a
-defVar k v = local (\e -> e { venv = insert k v (venv e)})
+       -> m a
+       -> m a
+defVar k v = local @"env" (\e -> e { venv = insert k v (venv e)})
 
-defVars :: [(String, VarEntry f)]
-       -> TcM f a
-       -> TcM f a
-defVars xs = local (\e -> e { venv = foldl (\acc (k, v) -> insert k v acc) (venv e) xs})
+defVars :: TransC f m => [(String, VarEntry f)]
+       -> m a
+       -> m a
+defVars xs = local @"env" (\e -> e { venv = foldl (\acc (k, v) -> insert k v acc) (venv e) xs})
 
-defTys :: [(String, Ty)] -> TcM f a -> TcM f a
-defTys xs = local (\e -> e { tenv = foldl (\acc (k, v) -> insert k v acc) (tenv e) xs})
+defTys :: TransC f m => [(String, Ty)] -> m a -> m a
+defTys xs = local @"env" (\e -> e { tenv = foldl (\acc (k, v) -> insert k v acc) (tenv e) xs})
 
-getVar :: String -> TcM f (Maybe (VarEntry f))
-getVar k = asks (H.lookup k . venv)
+getVar :: TransC f m => String -> m (Maybe (VarEntry f))
+getVar k = asks @"env" (H.lookup k . venv)
 
 getVar' pos k = getVar k >>= \case
   Just (VarEntry a _ x) -> pure (a, x)
   Just _ -> (tyErr pos ("undefined variable '" ++ k ++ "'"))
   _ -> (tyErr pos ("undefined variable '" ++ k ++ "'"))
 
-getVarMut :: Pos -> String -> TcM f (Access f, Ty)
+getVarMut :: TransC f m => Pos -> String -> m (Access f, Ty)
 getVarMut pos k = getVar k >>= \case
   Just (VarEntry a False x) -> pure (a, x)
   Just (VarEntry _ True x) -> (tyErr pos ("immutable var '" <> k <> "'" <> ":" <> show x))
@@ -318,20 +319,20 @@ getFun pos k = getVar k >>= \case
   Just _ -> (tyErr pos ("undefined function '" ++ k ++ "'"))
   _ -> (tyErr pos ("undefined function '" ++ k ++ "'"))
 
-getTy :: String -> TcM f (Maybe Ty)
-getTy k = asks (H.lookup k . tenv)
+getTy :: TransC f m => String -> m (Maybe Ty)
+getTy k = asks @"env" (H.lookup k . tenv)
 
 getTy' pos typ =
   getTy typ >>= maybe (tyErr pos ("undefined type: '" <> typ <> "'")) pure
 
-getLevel :: TcM f Level
-getLevel = asks level
+getLevel :: TransC f m => m Level
+getLevel = asks @"env" level
 
-newLevel' :: String -> [Bool] -> TcM f b -> TcM f b
+newLevel' :: TransC f m => String -> [Bool] -> m b -> m b
 newLevel' name formals c = do
   lv <- getLevel
   let lv' = newLevel lv name formals
-  local (\e -> e { level = lv' }) c
+  local @"env" (\e -> e { level = lv' }) c
 
 -- tmp
 getAcTy pos typ =
@@ -344,8 +345,8 @@ actTy pos (Name t) = getTy' pos t
 actTy _ t          = pure t
 --
 
-tyErr :: Pos -> String -> TcM f a
-tyErr pos msg = TcM $ lift . lift $ Left (pos, msg)
+tyErr :: TransC f m => Pos -> String -> m a
+tyErr pos msg = error msg -- TransC $ lift . lift $ Left (pos, msg)
 
 testTy pos t' t = do
   r <- sEq pos t' t
@@ -353,7 +354,7 @@ testTy pos t' t = do
   pure t'
 
 
-sEq :: AlexPosn -> Ty -> Ty -> TcM f Bool
+sEq :: TransC f m => AlexPosn -> Ty -> Ty -> m Bool
 sEq pos (Record xs) (Record ys)
   | length xs == length ys = do
       traceShowM (xs, ys)
@@ -377,16 +378,18 @@ sEq pos t (Name s) = do
 sEq _ x y = pure $ x == y
 
 
+runTrans :: Exp -> IO (Either (Pos, String) (Tree.Stm, Ty))
+runTrans e = do
+  ctx <- Ctx <$> newIORef [] <*> newIORef 0 <*> newIORef 0 <*> pure initEnv
+  runSemM ctx f
+  where
+    f = do
+      (exp, ty) <- transExp e
+      stm <- T.unNx exp
+      pure $ Right (stm, ty)
 
-runTrans :: Exp -> Either (Pos, String) ((Tree.Stm, Ty), TransResult ArmFrame)
-runTrans e = runTcM' f initEnv initTrans
-  where f = do
-          (exp, ty) <- transExp e
-          stm <- T.unNx exp
-          pure (stm, ty)
-
-runTcM' :: TcM ArmFrame  a -> Env ArmFrame -> TransResult ArmFrame  -> Either (Pos, String) (a, TransResult ArmFrame)
-runTcM' x e e' = runStateT (runReaderT (runTcM x) e) e'
+runSemM :: Ctx  ArmFrame -> SemM ArmFrame  a -> IO a
+runSemM ctx (SemM m) = runReaderT m ctx
 
 initEnv :: Frame f => Env f
 initEnv =
@@ -408,5 +411,3 @@ initEnv =
         ]
       level = outermost
   in Env {..}
-
-initTrans = TransResult [] 0 0

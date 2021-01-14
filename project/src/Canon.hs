@@ -1,7 +1,8 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE Strict #-}
-{-# LANGUAGE StrictData #-}
 
 module Canon where
 
@@ -12,6 +13,12 @@ import Translate.Type
 import Temp (mkLabel, mkTemp)
 import Data.Foldable (foldlM)
 import Debug.Trace (traceM)
+import Capability.State
+
+type CanonC m = ( HasState "tempCounter" Int m
+                  , HasState "labelCounter" Int m
+                  )
+
 
 linearize :: Stm -> [Stm]
 linearize stm0 = linear [] (doStm stm0)
@@ -70,8 +77,8 @@ linearize stm0 = linear [] (doStm stm0)
     doExp (Call e el) = reorderExp (e:el) \(e:el) -> Call e el
     doExp e = reorderExp [] (const e)
 
-3
-basicBlocks :: MonadState (TransResult a) m => [Stm] -> m ([[Stm]], Temp.Label)
+
+basicBlocks :: CanonC m => [Stm] -> m ([[Stm]], Temp.Label)
 basicBlocks stms = do
   done <- mkLabel
   start <- mkLabel
@@ -101,11 +108,8 @@ traceSchedule :: ([[Stm]], Temp.Label) -> [Stm]
 traceSchedule = undefined
 
 
-runCanon :: TransResult a
-                  -> Stm -> ( ([Stm], ([[Stm]], Temp.Label)), TransResult a)
-runCanon tr stm = runState f tr
-  where
-    f = do
+runCanon :: CanonC m =>Stm -> m ([Stm], ([[Stm]], Temp.Label))
+runCanon stm = do
       let stms = linearize stm
       stms' <- basicBlocks stms
       pure (stms, stms')

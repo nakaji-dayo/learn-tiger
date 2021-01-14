@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d94fc643f53d5b984ac139ff969335b427935c426f2568edd034a93aab0ef4b4
+-- hash: a42aaf67b06e1bafb9deb32b9e035f12b8c52f8a2fdca79c2c26d1dd01bfa788
 
 name:           project
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       AbSyn
+      Assem
       Canon
       Escape
       Frame
@@ -51,6 +52,7 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , capability
     , containers
     , directory
     , mtl
@@ -68,6 +70,7 @@ executable project-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , capability
     , containers
     , directory
     , mtl
@@ -87,6 +90,7 @@ test-suite project-test
   build-depends:
       array
     , base >=4.7 && <5
+    , capability
     , containers
     , directory
     , mtl

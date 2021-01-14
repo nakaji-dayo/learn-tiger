@@ -1,21 +1,23 @@
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 module Temp where
 
-import           Control.Monad.State (MonadState (get, put))
+import           Capability.State
 import           Temp.Type
 import           Type
 
-mkTemp :: MonadState (TransResult a) m => m Temp
+mkTemp :: HasState "tempCounter" Int m => m Temp
 mkTemp = do
-  s <- get
-  put (s {tempCounter = tempCounter s + 1})
-  pure $ Temp $ tempCounter s
+  s <- get @"tempCounter"
+  modify @"tempCounter" ( + 1)
+  pure $ Temp s
 
-mkLabel :: MonadState (TransResult a) m => m Label
+mkLabel :: HasState "labelCounter" Int m => m Label
 mkLabel = do
-  s <- get
-  put (s {labelCounter = labelCounter s + 1})
-  pure $ Label $ Just $ "L" <> show (labelCounter s)
+  s <- get @"labelCounter"
+  modify @"labelCounter" (+ 1)
+  pure $ Label $ Just $ "L" <> show s
 
 namedLabel :: String -> Label
 namedLabel = undefined

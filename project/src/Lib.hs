@@ -1,8 +1,12 @@
+{-# LANGUAGE LambdaCase       #-}
+{-# LANGUAGE TypeApplications #-}
 module Lib where
 
+import           Assem
 import           Canon
 import           Control.Monad
 import           Data.List          (isInfixOf)
+import           Frame.Arm          (ArmFrame (ArmFrame))
 import           Parser
 import           Semant
 import           System.Directory
@@ -13,7 +17,7 @@ run s =
   case parse s of
     Right e -> do
       pPrint e
-      case runTrans e of
+      runTrans e >>= \case
         Right t -> do
           pPrint t
           let ((stms, bs), _) = runCanon (snd t) (fst $ fst t)
@@ -23,6 +27,10 @@ run s =
           putStrLn  "-- bs --"
           let pblock (i, b) = print i >> mapM_ (\x -> putStrLn $ "  " <> show x) b
           mapM_ pblock $ zip [0..] (fst bs)
+          putStrLn  "instruction"
+          let assems = fmap (codegen @ArmFrame (undefined :: ArmFrame)) (concat $ fst bs)
+          print assems
+
         Left e  -> putStrLn "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
 
