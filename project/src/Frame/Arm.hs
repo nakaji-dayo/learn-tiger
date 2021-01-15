@@ -1,10 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
 module Frame.Arm where
 
+import           Assem.Type
 import           Frame
-import           Temp      (mkTemp)
+import           Temp       (mkTemp)
 import           Temp.Type
-import qualified Tree      as T
+import qualified Tree       as T
 
 data ArmFrame = ArmFrame
   { fname    :: Label
@@ -28,3 +29,15 @@ instance Frame ArmFrame where
   wordSize _ = 4
   exp (InReg t) _    = T.Temp t
   exp (InFrame k) fp = T.Mem $ T.BinOp T.Plus fp (T.Const k)
+  -- registers _ = specialregs <> argregs <> calleesaves <> callersaves
+  -- やっぱ分けたい.Instrの内部まで知りたくない
+  procEntryExit2 f b = b ++ [Oper "" (tempFP:tempLR:calleesaves) [] Nothing]
+
+tempA0 = NamedTemp "a1"
+tempFP = NamedTemp "fp"
+tempSP = NamedTemp "fp"
+tempLR = NamedTemp "fp"
+specialregs = [tempFP, tempSP, tempLR]
+argregs = NamedTemp . ('a':) . show <$> [1..4]
+calleesaves = NamedTemp . ('v':) . show <$> [1..7]
+callersaves = []

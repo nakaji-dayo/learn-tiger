@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a42aaf67b06e1bafb9deb32b9e035f12b8c52f8a2fdca79c2c26d1dd01bfa788
+-- hash: 04b21228175c80bc8abad34c20e109d1b6e8df14686da6611ba29a6192fd6a84
 
 name:           project
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       AbSyn
       Assem
+      Assem.Arm
       Canon
       Escape
       Frame

@@ -5,6 +5,7 @@
 module Lib where
 
 import           Assem
+import qualified Assem.Arm              as Arm
 import           Canon
 import           Capability.State
 import           Control.Monad
@@ -40,7 +41,7 @@ run s =
             let pblock (i, b) = debug i >> mapM_ (\x -> debug $ "  " <> show x) b
             mapM_ pblock $ zip [0..] (fst bs)
             debug  "instruction"
-            assems <- runCodegen (undefined :: ArmFrame) (concat $ fst bs)
+            assems <- runCodegen Arm.munchStm (undefined :: ArmFrame) (concat $ fst bs)
             mapM_ debug assems
           Left e  -> debug "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
