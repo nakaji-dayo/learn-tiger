@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 04763514bba2f354147b2c0ab9863160caf924a49e6cfff82a6aa3dd7d777191
+-- hash: e8276299bbed565ccdb6f97667a06261a84bbe9cd180791336b05f876a09b810
 
 name:           project
 version:        0.1.0.0
@@ -38,6 +38,7 @@ library
       Graph
       Lexer
       Lib
+      Liveness
       Parser
       Semant
       Temp
@@ -87,6 +88,7 @@ test-suite project-test
   main-is: Spec.hs
   other-modules:
       Spec.Graph
+      Spec.Liveness
       Spec.Semant
       Paths_project
   hs-source-dirs:
