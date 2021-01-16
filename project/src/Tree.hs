@@ -11,7 +11,7 @@ data Exp =
   | Mem Exp
   | Call Exp [Exp]
   | ESeq Stm Exp
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Stm =
   Move Exp Exp
@@ -20,7 +20,7 @@ data Stm =
   | CJump RelOp Exp Exp Label Label
   | Seq Stm Stm
   | Label Label
-  deriving (Show)
+  deriving (Show, Eq)
 
 data BinOp =
   Plus
@@ -33,7 +33,7 @@ data BinOp =
   | RShift
   | ARShift
   | Xor
-  deriving (Show)
+  deriving (Show, Eq)
 
 data RelOp =
   Eq
@@ -46,4 +46,4 @@ data RelOp =
   | UGT
   | ULTE
   | UGTE
-  deriving (Show)
+  deriving (Show, Eq)
