@@ -30,5 +30,4 @@ unit_interferenceGraph_1 = do
   let IGraph{..} = interferenceGraph fg
   graph ! 0 @?= [2]
   graph ! 1 @?= [2]
-  graph ! 2 @?= [1] -- todo:　cのdefがないので(恐らく引数とされている)、c -> aのedsgeが作られない。
-  --   後の実装を見て判断
+  graph ! 2 @?= [1,0]

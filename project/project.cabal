@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e8276299bbed565ccdb6f97667a06261a84bbe9cd180791336b05f876a09b810
+-- hash: d19139e528af44085fd676e8b2467e6256068d791d82696297baa2d1903690e0
 
 name:           project
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Assem.Arm
       Assem.Type
       Canon
+      Color
       Escape
       Frame
       Frame.Arm
@@ -87,6 +88,7 @@ test-suite project-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Spec.Color
       Spec.Graph
       Spec.Liveness
       Spec.Semant
