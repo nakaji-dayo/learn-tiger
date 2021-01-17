@@ -23,6 +23,11 @@ data IGraph = IGraph
   , moves :: [(Node, Node)]
   }
 
+resolveIGraph IGraph {..} =
+  map f $  assocs graph
+  where
+    f (k, vs) = (gtemp k, fmap gtemp vs)
+
 -- 「一度に一つの変数」を最適化できないか試したい
 --   テンポラリ数に対して走査回数を減らせないか
 -- が一旦集合で不動点出す方で実装してみる

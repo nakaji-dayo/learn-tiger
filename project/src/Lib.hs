@@ -12,6 +12,8 @@ import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.List              (isInfixOf)
 import           Frame.Arm              (ArmFrame (ArmFrame))
+import           Graph
+import           Liveness
 import           Parser
 import           Semant
 import           System.Directory
@@ -37,12 +39,18 @@ run s =
             debug "canon"
             debug  "-- stms --"
             mapM_ debug stms
-            debug  "-- bs --"
+            debug  "-- basic blocks --"
             let pblock (i, b) = debug i >> mapM_ (\x -> debug $ "  " <> show x) b
             mapM_ pblock $ zip [0..] (fst bs)
             debug  "instruction"
             assems <- runCodegen Arm.munchStm (undefined :: ArmFrame) (concat $ fst bs)
             mapM_ debug assems
+            debug "flowgraph"
+            let (fgraph, _) =  instrs2graph assems
+            debug "igraph"
+            debug fgraph
+            let igraph = interferenceGraph fgraph
+            mapM_ debug $ resolveIGraph igraph
           Left e  -> debug "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
 
