@@ -1,4 +1,4 @@
-name:                project
+name:                tigerc
 version:             0.1.0.0
 github:              "githubuser/project"
 license:             BSD3
@@ -28,12 +28,14 @@ dependencies:
 - containers
 - directory
 - capability
+- attoparsec
+- text
 
 library:
   source-dirs: src
 
 executables:
-  project-exe:
+  tigerc-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -41,10 +43,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - project
+    - tigerc
 
 tests:
-  project-test:
+  tigerc-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -52,7 +54,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - project
+    - tigerc
     - tasty
     - tasty-discover
     - tasty-hunit

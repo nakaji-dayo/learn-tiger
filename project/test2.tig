@@ -1,9 +1,9 @@
 let
   var x := 2
-  var y := 70
+  var y := 8
 in
   x + 8 + y;
-  print("hello");
-  if 1 then print("world") else print("error");
+  print("hello ");
+  if 1 then print("world") else print("##");
   print(chr(x + y))
 end

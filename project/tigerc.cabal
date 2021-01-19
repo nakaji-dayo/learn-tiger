@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d19139e528af44085fd676e8b2467e6256068d791d82696297baa2d1903690e0
+-- hash: 4a464cabd1e80bc3ebc2b29249d2ecb1ae2a4f8a3fa4b4f5ad583dce14ded07d
 
-name:           project
+name:           tigerc
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/project#readme>
 homepage:       https://github.com/githubuser/project#readme
@@ -44,6 +44,7 @@ library
       Semant
       Temp
       Temp.Type
+      Text.Assem
       Translate
       Translate.Type
       Tree
@@ -51,40 +52,44 @@ library
       Type
       Util
   other-modules:
-      Paths_project
+      Paths_tigerc
   hs-source-dirs:
       src
   build-depends:
       array
+    , attoparsec
     , base >=4.7 && <5
     , capability
     , containers
     , directory
     , mtl
     , pretty-simple
+    , text
     , unordered-containers
   default-language: Haskell2010
 
-executable project-exe
+executable tigerc-exe
   main-is: Main.hs
   other-modules:
-      Paths_project
+      Paths_tigerc
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
+    , attoparsec
     , base >=4.7 && <5
     , capability
     , containers
     , directory
     , mtl
     , pretty-simple
-    , project
+    , text
+    , tigerc
     , unordered-containers
   default-language: Haskell2010
 
-test-suite project-test
+test-suite tigerc-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
@@ -92,21 +97,23 @@ test-suite project-test
       Spec.Graph
       Spec.Liveness
       Spec.Semant
-      Paths_project
+      Paths_tigerc
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
+    , attoparsec
     , base >=4.7 && <5
     , capability
     , containers
     , directory
     , mtl
     , pretty-simple
-    , project
     , tasty
     , tasty-discover
     , tasty-hunit
+    , text
+    , tigerc
     , unordered-containers
   default-language: Haskell2010

@@ -9,6 +9,7 @@ module Semant where
 
 import           AbSyn
 import           Capability.Reader    (asks, local)
+import           Capability.State     (get)
 import           Control.Monad        (forM, forM_, unless, void, when)
 import           Control.Monad.Reader (runReaderT)
 import           Control.Monad.State  (evalState, runState, runStateT)
@@ -27,6 +28,7 @@ import           Temp                 (mkLabel)
 import           Temp.Type            (Label (Label))
 import           Translate            (newLevel, outermost)
 import qualified Translate            as T
+import           Translate.Type       (Frag)
 import qualified Tree
 import           Ty
 import           Type
@@ -384,11 +386,12 @@ runTrans m = do
   ctx <- Ctx <$> newIORef [] <*> newIORef 0 <*> newIORef 0 <*> pure initEnv
   runSemM ctx m
 
-trans :: TransC ArmFrame m => Exp -> m (Either (Pos, String) (Tree.Stm, Ty))
+trans :: TransC ArmFrame m => Exp -> m (Either (Pos, String) (Tree.Stm, Ty, [Frag ArmFrame]))
 trans e = do
   (exp, ty) <- transExp e
   stm <- T.unNx exp
-  pure $ Right (stm, ty)
+  fs <- get @"frags"
+  pure $ Right (stm, ty, fs)
 
 runSemM :: Ctx  ArmFrame -> SemM ArmFrame  a -> IO a
 runSemM ctx (SemM m) = runReaderT m ctx

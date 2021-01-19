@@ -23,5 +23,5 @@ instance IsString RawAssem where
         string prefix
         d <- digit
         pure $ c $  read [d]
-      pstr = AString <$> many letter
+      pstr = AString <$> many (letter <|> char ',')
       p = (pref ASrc "`s" <|> pref ADst "`d" <|> pref AJmp "`j" <|> pstr) `sepBy` space

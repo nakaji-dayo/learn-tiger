@@ -34,9 +34,6 @@ type Reg = String
 type Temp = Temp.Temp
 type Label = Temp.Label
 
-format :: (Temp -> String) -> Instr -> String
-format = undefined
-
 data Ctx f = Ctx
   { tempCounter  :: IORef Int
   , labelCounter :: IORef Int

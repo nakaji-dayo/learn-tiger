@@ -50,3 +50,24 @@ unit_color = do
                    in if c `elem` adcs
                       then assertFailure "conflict"
                       else print (i, c, adcs)
+
+unit_color_precolored :: IO ()
+unit_color_precolored = do
+  let
+    rs@(a:b:x:y:_) = [Temp 0, Temp 1, NamedTemp "x", NamedTemp "y"]
+    tnode t = fromJust $ elemIndex t rs
+    es = bimap tnode tnode <$>
+      concat [ (a,) <$> [x, b]
+      , (b,) <$> [a,x]
+      , (x,) <$> [a,b,y]
+      , (y,) <$> [x]
+      ]
+    gtemp = (rs !!)
+    graph = buildG (0, 3) es
+    moves = undefined
+  let graph2 = IGraph {..}
+  let (r, _) = color graph2 (M.fromList [(x, "x"), (y, "y")]) ["x", "y", "r9"]
+  print r
+  length r @?= 4
+  r M.! Temp 0 @?= "y"
+  r M.! Temp 1 @?= "r9"

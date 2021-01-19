@@ -40,14 +40,14 @@ void flush()
 struct string consts[256];
 struct string empty={0,""};
 
-/* int main() */
-/* {int i; */
-/*  for(i=0;i<256;i++) */
-/*    {consts[i].length=1; */
-/*     consts[i].chars[0]=i; */
-/*    } */
-/*  return tigermain(0 /\* static link!? *\/); */
-/* } */
+int main()
+{int i;
+ for(i=0;i<256;i++)
+   {consts[i].length=1;
+    consts[i].chars[0]=i;
+   }
+ return tigermain(0 /* static link!? */);
+}
 
 int ord(struct string *s)
 {

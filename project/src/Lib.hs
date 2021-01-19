@@ -8,10 +8,13 @@ import           Assem
 import qualified Assem.Arm              as Arm
 import           Canon
 import           Capability.State
+import           Color
 import           Control.Monad
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Data.List              (isInfixOf)
-import           Frame.Arm              (ArmFrame (ArmFrame))
+import           Frame                  (Frame (registers, tempMap))
+import           Frame.Arm              (ArmFrame (ArmFrame), buildMain,
+                                         formatString)
 import           Graph
 import           Liveness
 import           Parser
@@ -30,27 +33,34 @@ run s =
       runTrans $ do
         r <- trans e
         case r of
-          Right t -> do
-            pPrint t
+          Right (stm, ty, frags) -> do
+            pPrint stm
             fs <- get @"frags"
             debug "frags"
             mapM_ debug fs
-            (stms, bs) <- runCanon (fst t)
+            (stms, bs) <- runCanon stm
             debug "canon"
             debug  "-- stms --"
             mapM_ debug stms
             debug  "-- basic blocks --"
             let pblock (i, b) = debug i >> mapM_ (\x -> debug $ "  " <> show x) b
             mapM_ pblock $ zip [0..] (fst bs)
-            debug  "instruction"
+            debug  "-- instruction --"
             assems <- runCodegen Arm.munchStm (undefined :: ArmFrame) (concat $ fst bs)
             mapM_ debug assems
-            debug "flowgraph"
+            debug "-- flowgraph --"
             let (fgraph, _) =  instrs2graph assems
-            debug "igraph"
             debug fgraph
+            debug "-- igraph -- "
             let igraph = interferenceGraph fgraph
             mapM_ debug $ resolveIGraph igraph
+            let (alloc, _) = color igraph (tempMap (undefined :: ArmFrame)) (registers (undefined :: ArmFrame))
+            debug "-- color --"
+            debug alloc
+            let str = Arm.format alloc assems
+                str' = buildMain str <> "\n\n" <> formatString frags
+            liftIO $ writeFile "a.s" str'
+            pure ()
           Left e  -> debug "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
 

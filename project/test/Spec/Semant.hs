@@ -14,11 +14,11 @@ rtr m = runTrans m >>= either (assertFailure . show) pure
 rtl m = runTrans m >>= either (const $ pure ()) (const $ assertFailure "unexpected success")
 
 unit_transCall = do
-  (_, ty) <- rtr $ trans (CallExp "print" [StringExp "foo" p] p)
+  (_, ty, _) <- rtr $ trans (CallExp "print" [StringExp "foo" p] p)
   ty @?= Unit
 
 unit_transOp = do
-  (_, ty) <- rtr $ trans (OpExp (IntExp 0) Plus (IntExp 9) p)
+  (_, ty, _) <- rtr $ trans (OpExp (IntExp 0) Plus (IntExp 9) p)
   ty @?= Int
 
 -- unit_transOpError = do
