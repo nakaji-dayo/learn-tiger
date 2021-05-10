@@ -4,4 +4,6 @@ import           Lib
 import           System.Environment
 
 main :: IO ()
-main = getArgs >>= file . head
+main = do
+  f:out:_ <- getArgs
+  file f out

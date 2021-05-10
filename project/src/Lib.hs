@@ -26,7 +26,7 @@ import           Translate.Type         (Frag)
 debug :: (Show a, MonadIO m) => a -> m ()
 debug = liftIO . print
 
-run s =
+run out s =
   case parse s of
     Right e -> do
       pPrint e
@@ -59,17 +59,17 @@ run s =
             debug alloc
             let str = Arm.format alloc assems
                 str' = buildMain str <> "\n\n" <> formatString frags
-            liftIO $ writeFile "a.s" str'
+            liftIO $ writeFile out str'
             pure ()
           Left e  -> debug "type error" >> pPrint e
     Left e -> putStrLn "parse error" >> putStrLn e
 
 runC :: IO ()
-runC = getContents >>= run
+runC = getContents >>= run "a.out"
 
-file :: String -> IO ()
-file f =
-  readFile f >>= run
+file :: String -> String -> IO ()
+file f output =
+  readFile f >>= run output
 
 skips = ["test16.tig", "test17.tig", "test18.tig", "test28.tig", "test29.tig"
         , "test47.tig", "test49.tig" -- todo: handle syntax error
