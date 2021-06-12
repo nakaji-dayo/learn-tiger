@@ -101,6 +101,10 @@ string s = do
   pure $ Ex $ T.Name lbl
 
 binop A.Plus l r = Ex <$> (T.BinOp T.Plus <$> unEx l <*> unEx r)
+binop A.Eq l r   = do
+  el <- unEx l
+  er <- unEx r
+  pure $ Cx $ T.CJump T.Eq el er
 
 call :: TransC f m => Level -> Level -> Label -> [Exp] -> m Exp
 call erLv eeLv lbl as = do

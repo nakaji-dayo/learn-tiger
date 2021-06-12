@@ -48,9 +48,9 @@ munchExp e = error $ "munchExp: " <> show e
 munchStm :: GenC m => Stm -> m ()
 munchStm (CJump op le re tl fl) = do
   lt <- munchExp le
-  rt <- munchExp le
+  rt <- munchExp re
   emit $ Oper "cmp `s0 , `s1" [lt, rt] [] Nothing
-  emit $ Oper ("bne " <> lb tl) [] [] (Just [tl, fl])
+  emit $ Oper ("bne " <> lb fl) [] [] (Just [tl, fl])
 munchStm (Label lbl) = emit $ ILabel (formatLabel lbl) lbl
 -- TODO1: srcにreg以外を指定できるアドレッシング・モード
 munchStm (Move (Temp t) e2) = do
